@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { TransactionModal } from "@/components/TransactionModal";
+import { TransactionFilter } from "@/components/TransactionFilter";
+import { ProfilePage } from "@/components/ProfilePage";
 import { 
   PlusCircle, 
   TrendingUp, 
@@ -16,7 +19,10 @@ import {
   Calendar,
   Download,
   Search,
-  Filter
+  Filter,
+  User,
+  Edit,
+  Trash2
 } from "lucide-react";
 
 interface Transaction {
@@ -26,6 +32,7 @@ interface Transaction {
   category: string;
   date: string;
   type: 'income' | 'expense';
+  description?: string;
 }
 
 interface Budget {
@@ -36,23 +43,27 @@ interface Budget {
 }
 
 const FinancialDashboard = () => {
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile'>('dashboard');
   const [currentBalance] = useState(12450.75);
   const [monthlyIncome] = useState(5600.00);
   const [monthlyExpenses] = useState(3890.25);
+  
+  const [transactions, setTransactions] = useState<Transaction[]>([
+    { id: '1', title: 'Salary Deposit', amount: 5600, category: 'Salary', date: '2024-01-01', type: 'income', description: 'Monthly salary' },
+    { id: '2', title: 'Grocery Shopping', amount: 89.50, category: 'Food & Dining', date: '2024-01-02', type: 'expense', description: 'Weekly groceries' },
+    { id: '3', title: 'Rent Payment', amount: 1200, category: 'Housing', date: '2024-01-03', type: 'expense', description: 'Monthly rent' },
+    { id: '4', title: 'Coffee Shop', amount: 5.75, category: 'Food & Dining', date: '2024-01-04', type: 'expense', description: 'Morning coffee' },
+    { id: '5', title: 'Gas Station', amount: 65.00, category: 'Transportation', date: '2024-01-05', type: 'expense', description: 'Car fuel' },
+    { id: '6', title: 'Freelance Project', amount: 800, category: 'Freelance', date: '2024-01-06', type: 'income', description: 'Web design project' },
+  ]);
 
-  const recentTransactions: Transaction[] = [
-    { id: '1', title: 'Salary Deposit', amount: 5600, category: 'Income', date: '2024-01-01', type: 'income' },
-    { id: '2', title: 'Grocery Shopping', amount: -89.50, category: 'Food', date: '2024-01-02', type: 'expense' },
-    { id: '3', title: 'Rent Payment', amount: -1200, category: 'Housing', date: '2024-01-03', type: 'expense' },
-    { id: '4', title: 'Coffee Shop', amount: -5.75, category: 'Food', date: '2024-01-04', type: 'expense' },
-    { id: '5', title: 'Gas Station', amount: -65.00, category: 'Transport', date: '2024-01-05', type: 'expense' },
-  ];
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(transactions);
 
   const budgets: Budget[] = [
-    { category: 'Food', spent: 280, limit: 400, color: 'bg-blue-500' },
-    { category: 'Transport', spent: 150, limit: 200, color: 'bg-green-500' },
+    { category: 'Food & Dining', spent: 280, limit: 400, color: 'bg-blue-500' },
+    { category: 'Transportation', spent: 150, limit: 200, color: 'bg-green-500' },
     { category: 'Entertainment', spent: 75, limit: 100, color: 'bg-purple-500' },
-    { category: 'Health', spent: 45, limit: 150, color: 'bg-yellow-500' },
+    { category: 'Healthcare', spent: 45, limit: 150, color: 'bg-yellow-500' },
   ];
 
   const expenseCategories = [
@@ -62,6 +73,75 @@ const FinancialDashboard = () => {
     { name: 'Bills & Utilities', amount: 280, percentage: 15, color: 'bg-yellow-500' },
     { name: 'Others', amount: 160, percentage: 8, color: 'bg-gray-500' },
   ];
+
+  // Transaction Management Functions
+  const handleAddTransaction = (transaction: Transaction) => {
+    const newTransaction = {
+      ...transaction,
+      id: Date.now().toString()
+    };
+    setTransactions(prev => [newTransaction, ...prev]);
+    setFilteredTransactions(prev => [newTransaction, ...prev]);
+  };
+
+  const handleUpdateTransaction = (updatedTransaction: Transaction) => {
+    setTransactions(prev => prev.map(t => 
+      t.id === updatedTransaction.id ? updatedTransaction : t
+    ));
+    setFilteredTransactions(prev => prev.map(t => 
+      t.id === updatedTransaction.id ? updatedTransaction : t
+    ));
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
+    setFilteredTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleFilter = (filters: any) => {
+    let filtered = [...transactions];
+
+    if (filters.search) {
+      filtered = filtered.filter(t => 
+        t.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+        t.category.toLowerCase().includes(filters.search.toLowerCase())
+      );
+    }
+
+    if (filters.type !== 'all') {
+      filtered = filtered.filter(t => t.type === filters.type);
+    }
+
+    if (filters.category) {
+      filtered = filtered.filter(t => t.category === filters.category);
+    }
+
+    if (filters.dateFrom) {
+      filtered = filtered.filter(t => new Date(t.date) >= filters.dateFrom);
+    }
+
+    if (filters.dateTo) {
+      filtered = filtered.filter(t => new Date(t.date) <= filters.dateTo);
+    }
+
+    if (filters.amountMin) {
+      filtered = filtered.filter(t => t.amount >= filters.amountMin);
+    }
+
+    if (filters.amountMax) {
+      filtered = filtered.filter(t => t.amount <= filters.amountMax);
+    }
+
+    setFilteredTransactions(filtered);
+  };
+
+  const handleClearFilters = () => {
+    setFilteredTransactions(transactions);
+  };
+
+  if (currentView === 'profile') {
+    return <ProfilePage onBack={() => setCurrentView('dashboard')} />;
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8 animate-fade-in">
@@ -77,6 +157,10 @@ const FinancialDashboard = () => {
           <Button variant="outline" size="sm">
             <Bell className="h-4 w-4 mr-2" />
             Notifications
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCurrentView('profile')}>
+            <User className="h-4 w-4 mr-2" />
+            Profile
           </Button>
           <Button variant="outline" size="sm">
             <Settings className="h-4 w-4 mr-2" />
@@ -148,14 +232,26 @@ const FinancialDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Button variant="financial" className="h-20 flex-col gap-2">
-                  <PlusCircle className="h-6 w-6" />
-                  <span className="text-sm">Add Income</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col gap-2">
-                  <TrendingDown className="h-6 w-6" />
-                  <span className="text-sm">Add Expense</span>
-                </Button>
+                <TransactionModal
+                  mode="add"
+                  onSave={handleAddTransaction}
+                >
+                  <Button variant="financial" className="h-20 flex-col gap-2">
+                    <PlusCircle className="h-6 w-6" />
+                    <span className="text-sm">Add Income</span>
+                  </Button>
+                </TransactionModal>
+                
+                <TransactionModal
+                  mode="add"
+                  onSave={handleAddTransaction}
+                >
+                  <Button variant="outline" className="h-20 flex-col gap-2">
+                    <TrendingDown className="h-6 w-6" />
+                    <span className="text-sm">Add Expense</span>
+                  </Button>
+                </TransactionModal>
+                
                 <Button variant="outline" className="h-20 flex-col gap-2">
                   <Target className="h-6 w-6" />
                   <span className="text-sm">Set Budget</span>
@@ -175,21 +271,24 @@ const FinancialDashboard = () => {
                 <Calendar className="h-5 w-5 text-primary" />
                 Recent Transactions
               </CardTitle>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
+              <TransactionModal
+                mode="add"
+                onSave={handleAddTransaction}
+              >
+                <Button variant="financial" size="sm">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add New
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-              </div>
+              </TransactionModal>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <TransactionFilter 
+                onFilter={handleFilter}
+                onClear={handleClearFilters}
+              />
               <div className="space-y-3">
-                {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                {filteredTransactions.slice(0, 5).map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors group">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         transaction.type === 'income' ? 'bg-success/10' : 'bg-warning/10'
@@ -204,13 +303,27 @@ const FinancialDashboard = () => {
                         <p className="text-sm text-muted-foreground">{transaction.category}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-bold ${
-                        transaction.type === 'income' ? 'text-success' : 'text-foreground'
-                      }`}>
-                        {transaction.type === 'income' ? '+' : ''}${Math.abs(transaction.amount).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{transaction.date}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <p className={`font-bold ${
+                          transaction.type === 'income' ? 'text-success' : 'text-foreground'
+                        }`}>
+                          {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{transaction.date}</p>
+                      </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <TransactionModal
+                          mode="edit"
+                          transaction={transaction}
+                          onSave={handleUpdateTransaction}
+                          onDelete={handleDeleteTransaction}
+                        >
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TransactionModal>
+                      </div>
                     </div>
                   </div>
                 ))}
