@@ -3,9 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionModal } from "@/components/TransactionModal";
 import { TransactionFilter } from "@/components/TransactionFilter";
 import { ProfilePage } from "@/components/ProfilePage";
+import { CategoriesManager } from "./CategoriesManager";
+import { BudgetManager } from "./BudgetManager";
+import { ReportsAnalytics } from "./ReportsAnalytics";
 import { 
   PlusCircle, 
   TrendingUp, 
@@ -22,7 +26,10 @@ import {
   Filter,
   User,
   Edit,
-  Trash2
+  Trash2,
+  Tag,
+  CreditCard,
+  DollarSign
 } from "lucide-react";
 
 interface Transaction {
@@ -43,7 +50,7 @@ interface Budget {
 }
 
 const FinancialDashboard = () => {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [currentBalance] = useState(12450.75);
   const [monthlyIncome] = useState(5600.00);
   const [monthlyExpenses] = useState(3890.25);
@@ -139,10 +146,6 @@ const FinancialDashboard = () => {
     setFilteredTransactions(transactions);
   };
 
-  if (currentView === 'profile') {
-    return <ProfilePage onBack={() => setCurrentView('dashboard')} />;
-  }
-
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 lg:p-8 animate-fade-in">
       {/* Header */}
@@ -158,16 +161,42 @@ const FinancialDashboard = () => {
             <Bell className="h-4 w-4 mr-2" />
             Notifications
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrentView('profile')}>
-            <User className="h-4 w-4 mr-2" />
-            Profile
-          </Button>
           <Button variant="outline" size="sm">
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </Button>
         </div>
       </header>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </TabsTrigger>
+          <TabsTrigger value="transactions" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span className="hidden sm:inline">Transactions</span>
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            <span className="hidden sm:inline">Categories</span>
+          </TabsTrigger>
+          <TabsTrigger value="budget" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">Budget</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Reports</span>
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Profile</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">{/* Dashboard content remains the same */}
 
       {/* Balance Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -400,6 +429,103 @@ const FinancialDashboard = () => {
           </Card>
         </div>
       </div>
+
+        </TabsContent>
+
+        <TabsContent value="transactions" className="space-y-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  All Transactions
+                </CardTitle>
+                <TransactionModal
+                  mode="add"
+                  onSave={handleAddTransaction}
+                >
+                  <Button variant="financial">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Transaction
+                  </Button>
+                </TransactionModal>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <TransactionFilter 
+                  onFilter={handleFilter}
+                  onClear={handleClearFilters}
+                />
+                <div className="space-y-3">
+                  {filteredTransactions.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors group">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          transaction.type === 'income' ? 'bg-success/10' : 'bg-warning/10'
+                        }`}>
+                          {transaction.type === 'income' ? 
+                            <TrendingUp className="h-5 w-5 text-success" /> : 
+                            <TrendingDown className="h-5 w-5 text-warning" />
+                          }
+                        </div>
+                        <div>
+                          <p className="font-medium text-lg">{transaction.title}</p>
+                          <p className="text-sm text-muted-foreground">{transaction.category}</p>
+                          {transaction.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{transaction.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className={`font-bold text-lg ${
+                            transaction.type === 'income' ? 'text-success' : 'text-foreground'
+                          }`}>
+                            {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{transaction.date}</p>
+                        </div>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                          <TransactionModal
+                            mode="edit"
+                            transaction={transaction}
+                            onSave={handleUpdateTransaction}
+                            onDelete={handleDeleteTransaction}
+                          >
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TransactionModal>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {filteredTransactions.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No transactions found matching your filters</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="categories" className="space-y-6">
+          <CategoriesManager />
+        </TabsContent>
+
+        <TabsContent value="budget" className="space-y-6">
+          <BudgetManager />
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-6">
+          <ReportsAnalytics />
+        </TabsContent>
+
+        <TabsContent value="profile" className="space-y-6">
+          <ProfilePage onBack={() => setActiveTab('dashboard')} />
+        </TabsContent>
+      </Tabs>
 
       {/* Call to Action for Supabase */}
       <Card className="mt-8 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
